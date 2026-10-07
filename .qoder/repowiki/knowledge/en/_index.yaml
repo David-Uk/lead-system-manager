@@ -1,0 +1,61 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: Q0DeR-MaG1C-BrAnCh-Fo2-NoN-GiT-Or-No-C0MmIt
+nodes_managed: true
+exported_at: "2026-10-07T17:31:27Z"
+modules:
+    "":
+        dir_name: Lead System Manager — WhatsApp Retail Automation API
+        title: Lead System Manager — WhatsApp Retail Automation API
+        scope:
+            - README.md
+            - WORKPLAN.md
+            - .gitignore
+            - .dockerignore
+            - Dockerfile
+            - docker-compose.yml
+            - eslint.config.js
+            - package.json
+            - package-lock.json
+            - .env.example
+            - index.js
+        source_files: []
+        children:
+            - app_source
+            - scripts
+            - tests
+        depends_on: []
+        related_to: []
+    app_source:
+        dir_name: Lead System Manager Express API
+        title: Lead System Manager Express API
+        scope:
+            - src/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: scripts
+            - path: tests
+    scripts:
+        dir_name: Development & Seed Utilities
+        title: Development & Seed Utilities
+        scope:
+            - scripts/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: app_source
+    tests:
+        dir_name: Integration & Adapter Test Suite
+        title: Integration & Adapter Test Suite
+        scope:
+            - tests/
+            - test_inputs/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: app_source

@@ -1,0 +1,1 @@
+ESM Node.js scripts using built-in `crypto.createHmac`, `fs/promises.readFile`, and third-party `mongodb-memory-server` for an ephemeral MongoDB instance.

@@ -1,0 +1,3 @@
+- Configuration is externalised through environment variables consumed by dotenv rather than hard-coded constants.
+- Request/response shapes are validated centrally with Zod schemas and re-exported to handlers, adapters, and tests.
+- Structured logging goes through Pino instead of console.log across the server, scripts, and tests.

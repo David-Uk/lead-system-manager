@@ -1,0 +1,28 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "WABA_ID",
+      "changes": [
+        {
+          "field": "messages",
+          "value": {
+            "messaging_product": "whatsapp",
+            "contacts": [
+              { "profile": { "name": "Test Customer" }, "wa_id": "2348012345678" }
+            ],
+            "messages": [
+              {
+                "from": "2348012345678",
+                "id": "wamid.SAMPLE001",
+                "timestamp": "1791360000",
+                "type": "text",
+                "text": { "body": "How much is a bag of rice?" }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

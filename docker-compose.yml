@@ -1,0 +1,29 @@
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongo:27017/lead_system_manager
+      - STAFF_API_KEY=test-key
+      - WHATSAPP_VERIFY_TOKEN=test-token
+      - WHATSAPP_APP_SECRET=test-secret
+      - WHATSAPP_MODE=simulated
+      - LLM_PROVIDER=none
+    depends_on:
+      - mongo
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+
+  mongo:
+    image: mongo:8
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

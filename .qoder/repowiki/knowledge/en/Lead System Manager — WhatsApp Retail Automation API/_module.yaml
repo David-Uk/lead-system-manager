@@ -1,0 +1,18 @@
+schema_version: 1
+module_path: ""
+title: Lead System Manager — WhatsApp Retail Automation API
+scope:
+    - README.md
+    - WORKPLAN.md
+    - .gitignore
+    - .dockerignore
+    - Dockerfile
+    - docker-compose.yml
+    - eslint.config.js
+    - package.json
+    - package-lock.json
+    - .env.example
+    - index.js
+source_files: []
+depends_on: []
+related_to: []

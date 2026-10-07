@@ -1,0 +1,1 @@
+Tests require a running local MongoDB at `127.0.0.1:27017` only if they bypass the in-memory server; otherwise `mongodb-memory-server` starts its own instance automatically. Run with `node --test tests/**/*.test.js`. WhatsApp cloud-mode scenarios are launched through `node tests/helpers/run-adapter-scenario.mjs <forced|cloud-ok|cloud-http-error|cloud-network-error>`.

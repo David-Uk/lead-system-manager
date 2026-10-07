@@ -1,0 +1,4 @@
+- Every test file begins with `import './helpers/setup-env.mjs'` as its first import to freeze environment variables before any source module is evaluated.
+- Database-backed tests wrap their suite with `before(startTestDb)` / `after(stopTestDb)` from `helpers/testDb.js` instead of connecting directly.
+- WhatsApp adapter scenarios that need a mocked `fetch` or altered env run the real service in a child process via `run-adapter-scenario.mjs` and parse the final JSON line of stdout rather than mocking inside the test runner.
+- Assertions use `node:assert/strict` methods (`assert.equal`, `assert.deepEqual`, `assert.match`, `assert.ok`) instead of third-party assertion libraries.

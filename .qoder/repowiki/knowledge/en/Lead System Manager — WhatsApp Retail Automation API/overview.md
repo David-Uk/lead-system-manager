@@ -1,0 +1,1 @@
+Root of the Node.js Express + MongoDB application that exposes a WhatsApp-driven lead management API, with shared scripts and tests wired through npm and docker-compose.

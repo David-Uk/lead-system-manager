@@ -1,0 +1,1 @@
+Node.js utility scripts for seeding the product catalogue, running an in-memory MongoDB during development, and manually triggering Meta webhook endpoints.

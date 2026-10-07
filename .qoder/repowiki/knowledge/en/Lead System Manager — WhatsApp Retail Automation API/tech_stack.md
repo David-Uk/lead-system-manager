@@ -1,0 +1,1 @@
+Node.js >=20 ESM package; Express + Mongoose for the API; Zod (+ zod-to-openapi) for schema validation and OpenAPI generation; Pino for structured logging; Supertest + mongodb-memory-server for integration tests; ESLint 9 + Prettier for linting/formatting; Docker + docker-compose for local orchestration.

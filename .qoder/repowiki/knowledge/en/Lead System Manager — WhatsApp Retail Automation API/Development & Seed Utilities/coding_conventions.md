@@ -1,0 +1,4 @@
+- Scripts guard direct execution with an `import.meta.url` / `fileURLToPath` check against `process.argv[1]` so they can be imported as modules by tests without side effects.
+- CLI arguments are parsed with a simple positional + `--flag` loop over `process.argv.slice(2)` rather than a dedicated parser library.
+- Errors set `process.exitCode = 1` instead of throwing, allowing the script process to exit with a non-zero status after logging.
+- Logging goes through the shared `logger` utility from `src/utils/logger.js` rather than `console.log` for structured log output.

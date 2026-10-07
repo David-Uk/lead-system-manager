@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lagos Fresh Mart - Operations Dashboard</title>
+    <link rel="stylesheet" href="/dashboard/dashboard.css" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+      defer
+    ></script>
+    <script src="/dashboard/dashboard.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <h1>Lagos Fresh Mart</h1>
+        <p class="subtitle">WhatsApp operations dashboard</p>
+      </div>
+      <div class="controls">
+        <label for="api-key">Staff API key</label>
+        <input
+          id="api-key"
+          type="password"
+          placeholder="x-api-key"
+          autocomplete="off"
+        />
+        <button id="refresh" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <div id="notice" class="notice hidden" role="alert"></div>
+
+    <main>
+      <section class="tiles" id="tiles" aria-label="Key numbers"></section>
+
+      <section class="grid-2">
+        <div class="panel">
+          <h2>Intent breakdown <span class="muted">(inbound, window)</span></h2>
+          <div class="chart-box"><canvas id="intent-chart"></canvas></div>
+        </div>
+        <div class="panel">
+          <h2>Classifier mix <span class="muted">(rules / LLM / fallback)</span></h2>
+          <div class="chart-box"><canvas id="classifier-chart"></canvas></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Open tickets <span class="muted" id="tickets-total"></span></h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ticket</th>
+                <th>Reason</th>
+                <th>Priority</th>
+                <th>Assignee</th>
+                <th>Staff notified</th>
+                <th>SLA</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody id="tickets-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Recent audit events <span class="muted">(newest first)</span></h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Event</th>
+                <th>Entity</th>
+                <th>Detail</th>
+                <th>Correlation</th>
+              </tr>
+            </thead>
+            <tbody id="audit-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span id="status">waiting for data</span>
+      <span class="muted">auto-refresh every 10 s</span>
+    </footer>
+  </body>
+</html>

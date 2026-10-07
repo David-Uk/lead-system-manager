@@ -1,0 +1,1 @@
+Node:test-based integration tests for the application's HTTP endpoints, WhatsApp adapter, and seed/webhook flows, using an in-memory MongoDB and child-process isolation for network scenarios.

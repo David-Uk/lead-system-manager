@@ -1,0 +1,1 @@
+Environment variables are validated at startup via Zod — invalid `.env` values cause an immediate `process.exit(1)` with a printed issue list referencing `.env.example`. The server starts listening on `PORT` before connecting to MongoDB, so it remains reachable on `/health` while DB retries happen in the background.

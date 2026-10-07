@@ -1,0 +1,6 @@
+- Async Express handlers are wrapped with `utils/asyncHandler` so rejected promises are forwarded to the global error handler instead of crashing the process.
+- All configuration is accessed through the frozen `env` object exported from `config/env.js` rather than reading `process.env` directly.
+- Structured logging uses `pino` via `utils/logger.js`, with child loggers created per request carrying `correlationId`, `source`, and `messageId` fields.
+- Errors thrown inside controllers/middleware are instances of `HttpError` from `utils/httpError.js`, allowing the central error handler to map them to consistent JSON responses.
+- Route groups are declared as separate files under `routes/` and registered in the central `routes/index.js` router, keeping URL prefixes explicit and centralized.
+- Mongoose models are imported exclusively through `models/index.js`, which re-exports schemas and their associated constants (e.g. `CONVERSATION_STATES`, `ORDER_STATUSES`) to keep enum-like values in sync.

@@ -1,0 +1,7 @@
+Four independent top-level scripts plus a data fixture, each executed directly with `node`:
+- `seed.js` — connects to MongoDB via `src/config/db`, upserts the synthetic catalogue from `data/products.js` by SKU using `Product.updateOne({ upsert: true })`, supports `--reset` flag, and guards direct execution via `import.meta.url` comparison so it can be imported by tests.
+- `dev-memory-mongo.js` — starts an in-process `MongoMemoryServer` on port 27017 with DB name `lead_system_manager`, hooks SIGINT/SIGTERM to shut down cleanly; intended to run alongside `npm run dev` when Docker/Atlas is unavailable.
+- `send-webhook.js` — CLI that reads a Meta-shaped payload (default `test_inputs/webhook-sample.json`), signs it with HMAC-SHA256 against `env.WHATSAPP_APP_SECRET` (or `--bad-signature` for failure demos), POSTs it to `/webhook`, and sets `process.exitCode` based on HTTP status.
+- `data/products.js` — pure ESM export of the synthetic Lagos Fresh Mart product list (NGN prices, fictional data).
+
+Dependency direction is one-way: scripts import shared runtime modules (`src/config/db`, `src/models/product.model`, `src/utils/logger`, `src/config/env`) but nothing in `src` imports back into `scripts`. There are no sub-packages or build manifests — these are plain ES modules consumed via `node`.

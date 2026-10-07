@@ -1,0 +1,5 @@
+The workspace root is a single Node ESM package (`"type": "module"`, `main: src/server.js`) whose three child modules share one dependency graph and runtime contract:
+- `app_source` (Express server) is the production entry point started via `npm start` / `docker-compose up api`.
+- `scripts` provides dev-time utilities (`seed.js`, `dev-memory-mongo.js`, webhook trigger) invoked through `npm run seed` / `npm run dev:mongo`.
+- `tests` runs against the same Express app using `node --test` with an in-memory MongoDB, sharing the Zod schemas and environment variables defined at this level.
+Environment configuration flows from `.env.example` into both the Docker container (via `docker-compose.yml`'s `environment:` block) and the dev scripts; all children read the same set of env vars (`MONGODB_URI`, `WHATSAPP_*`, `STAFF_API_KEY`, `LLM_PROVIDER`). Docker Compose orchestrates the API service plus a `mongo:8` sidecar on port 27017, while the Dockerfile builds the app under `/usr/src/app` with volume mounts for live reload during development.

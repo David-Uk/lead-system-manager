@@ -1,0 +1,8 @@
+Layered MVC-style Express application with clear separation of concerns:
+- Entry point `server.js` boots the HTTP server first (so `/health` is available even before MongoDB connects), then calls `connectDb()` from `config/db.js`; graceful shutdown drains connections with a 10s timeout.
+- `app.js` exports `createApp()`, which wires global middleware in order: correlation-id injection → pino-http logging → helmet → JSON parsing (preserving raw body for HMAC verification) → rate limiter → route mounting → not-found → error handler.
+- Routes are grouped under `routes/` (`health.routes.js`, `webhook.routes.js`, `simulate.routes.js`) and mounted centrally in `routes/index.js`; each route file pairs with a controller in `controllers/` and optional validators in `validators/`.
+- Business logic lives in `services/`: `pipeline.service.js` defines the single entry point `processInboundMessage` that both webhook and simulate flows funnel through, with TODO markers for future steps (dedupe, classify, route, reply, escalate); `whatsapp.adapter.js` abstracts the WhatsApp Cloud API vs simulated transport; `audit.service.js` persists audit events.
+- Data layer uses Mongoose models under `models/` (Conversation, Customer, Message, Order, Product, Ticket, AuditEvent) re-exported via `models/index.js` so schema registration stays idempotent.
+- Cross-cutting concerns live in `middleware/` (`auth.js` for x-api-key staff auth, `correlationId.js`, `errorHandler.js`, `signature.js` for webhook HMAC) and `utils/` (`asyncHandler`, `httpError`, `logger`, `phone`).
+- Configuration is centralized in `config/env.js` using Zod schemas with custom boolean coercion and production-only validation rules; `config/db.js` handles the MongoDB connection lifecycle.

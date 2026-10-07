@@ -1,0 +1,1 @@
+Node.js built-in `node:test` runner with `node:assert/strict`; `supertest` for HTTP endpoint calls; `mongodb-memory-server` + Mongoose for an ephemeral database; `child_process.execFile` for isolating WhatsApp adapter scenarios.

@@ -1,0 +1,1 @@
+Express.js server that exposes health, webhook, and simulate endpoints for a WhatsApp-driven lead management pipeline backed by MongoDB.

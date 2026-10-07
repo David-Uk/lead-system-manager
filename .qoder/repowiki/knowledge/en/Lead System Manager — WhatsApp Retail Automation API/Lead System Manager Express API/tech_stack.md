@@ -1,0 +1,1 @@
+Express 4 + Mongoose + MongoDB; Zod for environment validation; pino/pino-http for structured logging; helmet for security headers; express-rate-limit for coarse abuse protection; dotenv for .env loading; node:crypto timingSafeEqual for API key comparison.

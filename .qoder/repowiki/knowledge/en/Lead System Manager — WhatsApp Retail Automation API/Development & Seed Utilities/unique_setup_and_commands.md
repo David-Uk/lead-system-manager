@@ -1,0 +1,1 @@
+`node scripts/dev-memory-mongo.js` runs an in-memory MongoDB on port 27017 (Ctrl+C to stop); `node scripts/seed.js [--reset]` populates the product catalogue; `node scripts/send-webhook.js [payload.json] --url <endpoint> --secret <app-secret>` sends a signed Meta webhook demo (supports `--text`, `--id`, `--from`, `--bad-signature`).

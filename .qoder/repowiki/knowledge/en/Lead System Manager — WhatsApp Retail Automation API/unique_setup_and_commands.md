@@ -1,0 +1,1 @@
+`npm start` boots the Express server; `npm run dev` uses `node --watch`; `npm test` runs the integration suite serially (`--test-concurrency=1`); `npm run seed` populates the product catalogue; `npm run dev:mongo` starts an in-memory MongoDB for local dev; `docker compose up` brings up the API on :3000 and a persistent Mongo on :27017.
