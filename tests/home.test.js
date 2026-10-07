@@ -17,6 +17,7 @@ describe('home GUI (index page for browsers)', () => {
         assert.match(res.text, /\/simulate\/keys/);
         assert.match(res.text, /id="generate-key"/);
         assert.match(res.text, /Explore API data/);
+        assert.match(res.text, /href="\/simulate"/);
         assert.match(res.text, /\/dashboard/);
         assert.match(res.text, /\/ui\/app\.js/);
         assert.match(res.text, /data-env="test"/);
@@ -38,5 +39,35 @@ describe('home GUI (index page for browsers)', () => {
         const css = await request(app).get('/ui/style.css');
         assert.equal(css.status, 200);
         assert.match(css.headers['content-type'], /text\/css/);
+    });
+});
+
+describe('simulation workbench (GET /simulate)', () => {
+    test('serves the workbench HTML when the client accepts text/html', async () => {
+        const res = await request(app).get('/simulate').set('Accept', 'text/html');
+
+        assert.equal(res.status, 200);
+        assert.match(res.headers['content-type'], /text\/html/);
+        assert.match(res.text, /Simulation workbench/);
+        assert.match(res.text, /\/ui\/simulate\.js/);
+        assert.match(res.text, /id="generate-key"/);
+        assert.match(res.text, /id="new-customer"/);
+        assert.match(res.text, /id="pipeline"/);
+        assert.match(res.text, /id="audit-timeline"/);
+        assert.match(res.text, /data-env="test"/);
+    });
+
+    test('falls through to 404 for non-HTML clients (the API surface is POST-only)', async () => {
+        const res = await request(app).get('/simulate');
+
+        assert.equal(res.status, 404);
+        assert.equal(res.body.error.code, 'NOT_FOUND');
+    });
+
+    test('serves the workbench script asset', async () => {
+        const res = await request(app).get('/ui/simulate.js');
+
+        assert.equal(res.status, 200);
+        assert.match(res.headers['content-type'], /javascript/);
     });
 });

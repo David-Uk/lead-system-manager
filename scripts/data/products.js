@@ -46,4 +46,21 @@ export const products = [
     { sku: 'DETERGENT-1KG', name: 'Washing Powder 1kg', aliases: ['detergent', 'washing powder', 'omo'], category: 'Household', priceNGN: 1700, stock: 50 },
     { sku: 'BARSOAP-4PACK', name: 'Bar Soap (pack of 4)', aliases: ['soap', 'bar soap'], category: 'Household', priceNGN: 2200, stock: 44 },
     { sku: 'TISSUE-10PACK', name: 'Tissue Paper (pack of 10)', aliases: ['tissue', 'toilet roll', 'toilet paper'], category: 'Household', priceNGN: 2600, stock: 38 },
+
+    // Demo picks - branded or prepared items with colloquial aliases. These
+    // exist so demo messages (and the /simulate workbench scenarios) always
+    // hit catalogue-backed answers: the rules classifier matches the aliases
+    // and the price/enquiry/order handlers resolve them to a SKU.
+    { sku: 'SARDINE-TIN', name: 'Sardine (tin)', aliases: ['sardine', 'tinned sardine', 'geisha'], category: 'Proteins', priceNGN: 1900, stock: 48 },
+    { sku: 'STOCKFISH-1KG', name: 'Stockfish 1kg', aliases: ['stockfish', 'okporoko'], category: 'Proteins', priceNGN: 7400, stock: 14 },
+    { sku: 'CRAYFISH-500G', name: 'Crayfish 500g', aliases: ['crayfish', 'ground crayfish'], category: 'Condiments', priceNGN: 3600, stock: 35 },
+    { sku: 'EGUSI-1KG', name: 'Egusi Seeds 1kg', aliases: ['egusi', 'melon seeds'], category: 'Condiments', priceNGN: 4200, stock: 25 },
+    { sku: 'HONEY-500ML', name: 'Pure Honey 500ml', aliases: ['honey', 'pure honey'], category: 'Condiments', priceNGN: 4500, stock: 30 },
+    { sku: 'SUGAR-2KG', name: 'Sugar 2kg', aliases: ['sugar', 'granulated sugar'], category: 'Condiments', priceNGN: 3200, stock: 40 },
+    { sku: 'MARGARINE-250G', name: 'Blue Band Margarine 250g', aliases: ['margarine', 'blue band', 'butter'], category: 'Condiments', priceNGN: 2100, stock: 44 },
+    { sku: 'MILO-500G', name: 'Milo 500g', aliases: ['milo', 'milo tin'], category: 'Beverages', priceNGN: 3800, stock: 26 },
+    { sku: 'GOLDENMORN-1KG', name: 'Golden Morn 1kg', aliases: ['golden morn', 'goldenmorn'], category: 'Beverages', priceNGN: 4600, stock: 20 },
+    { sku: 'LIPTON-50BAGS', name: 'Lipton Tea (50 bags)', aliases: ['lipton', 'tea bags', 'green tea'], category: 'Beverages', priceNGN: 2900, stock: 32 },
+    { sku: 'FLOUR-2KG', name: 'Wheat Flour 2kg', aliases: ['flour', 'wheat flour', 'baking flour'], category: 'Grains', priceNGN: 3500, stock: 36 },
+    { sku: 'INDOMIE-CARTON', name: 'Indomie Noodles (carton of 40)', aliases: ['indomie', 'instant noodles', 'noodles carton'], category: 'Grains', priceNGN: 6800, stock: 18 },
 ];

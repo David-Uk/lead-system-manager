@@ -34,6 +34,7 @@ router.get('/', (req, res) => {
         version,
         documentation: '/docs',
         dashboard: '/dashboard',
+        simulation: '/simulate',
         health: '/health',
         openapi: '/openapi.json',
     });

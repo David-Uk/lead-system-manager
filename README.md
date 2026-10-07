@@ -40,12 +40,13 @@ append-only audit trail of everything.
 Sprints 0–3 are implemented (tasks T-001 to T-016):
 
 - Repository setup, Dockerfile, docker-compose, environment validation (`src/config/env.js`)
-- Products/customer/conversation/message/order/ticket/audit models and the seed script (`30`-product synthetic catalogue)
+- Products/customer/conversation/message/order/ticket/audit models and the seed script (42-product synthetic catalogue with demo brands — Milo, Indomie, Golden Morn, sardines, stockfish, egusi, honey, tea, flour — that the AI resolves from colloquial WhatsApp text)
 - Standard error handling, `x-correlation-id` on every response, structured pino logging
 - `GET /health` with mongo/llm/notifier checks (503 when Mongo is down)
 - `POST /webhook` with HMAC-SHA256 signature verification, payload validation, instant 200 + async processing, audit events for rejects
 - `POST /simulate/message` (staff API key) to drive the pipeline without Meta, and the WhatsApp adapter (simulated + Cloud API modes)
 - `POST /simulate/keys` mints **sandbox staff keys** for the simulation: a sandbox key authenticates the identical staff API but every read and write is scoped to its own isolated dataset - never live data - and its documents self-delete after the key (plus a day of grace) expires
+- The **simulation workbench** at `/simulate` runs the entire workflow as a simulation: chat as a customer, watch each pipeline stage (received → dedupe → classified → routed → outcome), follow the audit trail automatically and pull tickets/orders/metrics/audit into a data viewer; the scheduled scenarios include demo brands the AI tracks (Milo, Indomie, …)
 - The message pipeline is **live end to end**: it persists the customer + conversation, dedupes repeat deliveries by `providerMessageId` (workplan failure #2), classifies each message (rules first, Ollama Cloud LLM when unsure, safe fallback), answers stock/price/order-status questions and records the full audit trail
 - `place_order` runs a **slot-filling state machine** (item → quantity → address → YES/NO confirm) that creates a real Order (`ORD-20261007-0001`, status `pending_confirmation`) and audits `ORDER_CREATED`; `cancel`/`human` escape mid-flow, invalid answers re-prompt twice then escalate, and conversations idle 30+ minutes expire lazily
 - The staff **orders API** (`/api/orders`, `x-api-key`) lists/filters orders, fetches one by reference and enforces the status transition table with `ORDER_UPDATED` audits
@@ -97,7 +98,7 @@ copy .env.example .env        # Windows (cmd)
 # 3. Start MongoDB — pick ONE option from "Running MongoDB" below, e.g. no Docker:
 npm run dev:mongo             # terminal 1 (in-memory, resets on exit; dev only)
 
-# 4. Seed the product catalogue (30 products, idempotent)
+# 4. Seed the product catalogue (42 products, idempotent)
 npm run seed
 
 # 5. Start the API
@@ -166,7 +167,7 @@ always win over `.env` because dotenv never overrides them.
 |---|---|
 | `npm run dev` | Start with `--watch` |
 | `npm start` | Start once |
-| `npm run seed` | Upsert the 30-product catalogue (idempotent) |
+| `npm run seed` | Upsert the 42-product catalogue (idempotent) |
 | `npm run seed -- --reset` | Clear products first, then seed |
 | `npm run dev:mongo` | In-memory MongoDB on 27017 (no Docker) |
 | `npm test` | Full test suite (node:test + in-memory Mongo) |
@@ -188,9 +189,11 @@ the transport changes.
 ### Run the simulation (default — nothing external needed)
 
 1. Start the stack: `npm run dev:mongo`, `npm run seed`, `npm start` (see Quick start).
-2. Drive an inbound message. Easiest: open http://localhost:3000 in a browser — the index
-   page hosts a GUI that links to every service URL and sends simulated messages for you
-   (buttons for common scenarios, staff key, replay an audit trail). Or use curl:
+2. Drive an inbound message. Easiest: open http://localhost:3000/simulate in a browser —
+   the simulation workbench chats the entire workflow: send messages as a customer, watch
+   each pipeline stage, follow the audit trail and explore the orders/tickets it creates.
+   The index page (http://localhost:3000) hosts the simpler GUI with the same scenarios.
+   Or use curl:
 
    ```bash
    curl -X POST http://localhost:3000/simulate/message \
@@ -212,9 +215,9 @@ The simulation kit also covers the awkward paths:
 On a deployed (production) instance the live staff key intentionally gets a 404 from
 `POST /simulate/message` (workplan 8.3). Self-service **sandbox keys** are the sanctioned way to
 demo there: mint one with `POST /simulate/keys` (public, rate-limited) or the "Generate sandbox
-key" button in the home GUI, then use it as `x-api-key`. Requests with it run the identical API —
-pipeline, orders, tickets, metrics, audit — but every document is scoped to that key's isolated
-dataset, so the demo never reads or writes live data. See
+key" button in the home GUI or on the `/simulate` workbench, then use it as `x-api-key`. Requests
+with it run the identical API — pipeline, orders, tickets, metrics, audit — but every document is
+scoped to that key's isolated dataset, so the demo never reads or writes live data. See
 ["Sandbox keys"](#sandbox-keys-demo-simulation-without-live-data).
 
 ### Switch to live (WhatsApp Cloud API)
@@ -248,7 +251,7 @@ customer message
         ├─ place_order     ▸ slot filling ▸ Order (ORD-…)
         └─ unsafe/unclear  ▸ Ticket (TKT-…) + staff alert
 
-staff: /api/orders ▸ /api/tickets      ops: /api/metrics ▸ /api/audit ▸ /dashboard ▸ /docs ▸ /health
+demo: / ▸ /simulate     staff: /api/orders ▸ /api/tickets     ops: /api/metrics ▸ /api/audit ▸ /dashboard ▸ /docs ▸ /health
 ```
 
 | # | Stage | Endpoint(s) | What to know |
@@ -601,6 +604,7 @@ grep one id to trace a message end to end.
 | Endpoint | Auth | Purpose |
 |---|---|---|
 | `GET /` | none | Service signpost for API clients; browsers (`Accept: text/html`) get the home GUI — endpoint navigation, sandbox-key generation and a simulation panel with an inline API viewer |
+| `GET /simulate` | none | Simulation workbench page for browsers: customer chat simulator, pipeline-stage inspector, automatic audit trail and a data viewer. Non-HTML clients fall through to 404 (the `/simulate` API surface is POST-only) |
 | `GET /health` | none | Liveness/readiness: `ok` / `degraded` (200) or `down` (503) |
 | `GET /webhook` | verify token | Meta handshake, echoes `hub.challenge` |
 | `POST /webhook` | `x-hub-signature-256` | Inbound WhatsApp messages; always 200 fast, processing async |

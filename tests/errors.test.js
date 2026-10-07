@@ -31,6 +31,7 @@ describe('standard error handling', () => {
         assert.ok(res.body.version);
         assert.equal(res.body.documentation, '/docs');
         assert.equal(res.body.dashboard, '/dashboard');
+        assert.equal(res.body.simulation, '/simulate');
         assert.equal(res.body.health, '/health');
         assert.equal(res.body.openapi, '/openapi.json');
     });

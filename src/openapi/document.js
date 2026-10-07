@@ -59,8 +59,9 @@ const document = {
             'and escalates to human tickets when it cannot answer safely.',
             '',
             'Staff endpoints sit behind the shared `x-api-key` header; every response carries a',
-            '`correlationId` that ties it to the audit trail (`GET /api/audit`). The operator',
-            'dashboard is served at `/dashboard`.',
+            '`correlationId` that ties it to the audit trail (`GET /api/audit`). Browser entry',
+            'points: the home GUI at `/`, the simulation workbench at `/simulate` and the',
+            'operator dashboard at `/dashboard`.',
             '',
             'The WhatsApp channel is simulated: outbound messages are logged (stdout plus',
             '`logs/whatsapp-outbound.log`) instead of being sent to Meta.',
@@ -84,7 +85,7 @@ const document = {
                 summary: 'Service index',
                 description:
                     'Small signpost for browsers and probes: service name, version and the main ' +
-                    'entry points (documentation, dashboard, health, OpenAPI document).',
+                    'entry points (documentation, dashboard, simulation, health, OpenAPI document).',
                 responses: {
                     200: {
                         description: 'Service signpost',
@@ -95,6 +96,7 @@ const document = {
                                 version: { type: 'string' },
                                 documentation: { type: 'string' },
                                 dashboard: { type: 'string' },
+                                simulation: { type: 'string' },
                                 health: { type: 'string' },
                                 openapi: { type: 'string' },
                             },
