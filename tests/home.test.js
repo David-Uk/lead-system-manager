@@ -21,6 +21,8 @@ describe('home GUI (index page for browsers)', () => {
         assert.match(res.text, /\/dashboard/);
         assert.match(res.text, /\/ui\/app\.js/);
         assert.match(res.text, /data-env="test"/);
+        assert.match(res.text, /Is there anything for breakfast\?/);
+        assert.match(res.text, /Abeg I need something to cook jollof/);
     });
 
     test('answers with the JSON signpost when HTML is not requested', async () => {
@@ -55,6 +57,8 @@ describe('simulation workbench (GET /simulate)', () => {
         assert.match(res.text, /id="pipeline"/);
         assert.match(res.text, /id="audit-timeline"/);
         assert.match(res.text, /data-env="test"/);
+        assert.match(res.text, /Is there anything for breakfast\?/);
+        assert.match(res.text, /Abeg I need something to cook jollof/);
     });
 
     test('falls through to 404 for non-HTML clients (the API surface is POST-only)', async () => {

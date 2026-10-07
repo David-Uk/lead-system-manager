@@ -46,7 +46,7 @@ Sprints 0–3 are implemented (tasks T-001 to T-016):
 - `POST /webhook` with HMAC-SHA256 signature verification, payload validation, instant 200 + async processing, audit events for rejects
 - `POST /simulate/message` (staff API key) to drive the pipeline without Meta, and the WhatsApp adapter (simulated + Cloud API modes)
 - `POST /simulate/keys` mints **sandbox staff keys** for the simulation: a sandbox key authenticates the identical staff API but every read and write is scoped to its own isolated dataset - never live data - and its documents self-delete after the key (plus a day of grace) expires
-- The **simulation workbench** at `/simulate` runs the entire workflow as a simulation: chat as a customer, watch each pipeline stage (received → dedupe → classified → routed → outcome), follow the audit trail automatically and pull tickets/orders/metrics/audit into a data viewer; the scheduled scenarios include demo brands the AI tracks (Milo, Indomie, …)
+- The **simulation workbench** at `/simulate` runs the entire workflow as a simulation: chat as a customer, watch each pipeline stage (received → dedupe → classified → routed → outcome), follow the audit trail automatically and pull tickets/orders/metrics/audit into a data viewer; the scheduled scenarios include demo brands the AI tracks (Milo, Indomie, …) and AI-deduction prompts with no keyword signal - the LLM alone works out the intent, shown as "via llm" in the pipeline inspector
 - The message pipeline is **live end to end**: it persists the customer + conversation, dedupes repeat deliveries by `providerMessageId` (workplan failure #2), classifies each message (rules first, Ollama Cloud LLM when unsure, safe fallback), answers stock/price/order-status questions, lists the whole catalogue on request ("what do you sell?"), and records the full audit trail
 - `place_order` runs a **slot-filling state machine** (item → quantity → address → YES/NO confirm) that creates a real Order (`ORD-20261007-0001`, status `pending_confirmation`) and audits `ORDER_CREATED`; `cancel`/`human` escape mid-flow, invalid answers re-prompt twice then escalate, and conversations idle 30+ minutes expire lazily
 - The staff **orders API** (`/api/orders`, `x-api-key`) lists/filters orders, fetches one by reference and enforces the status transition table with `ORDER_UPDATED` audits
@@ -216,8 +216,9 @@ On a deployed (production) instance the live staff key intentionally gets a 404 
 `POST /simulate/message` (workplan 8.3). Self-service **sandbox keys** are the sanctioned way to
 demo there: mint one with `POST /simulate/keys` (public, rate-limited) or the "Generate sandbox
 key" button in the home GUI or on the `/simulate` workbench, then use it as `x-api-key`. Requests
-with it run the identical API — pipeline, orders, tickets, metrics, audit — but every document is
-scoped to that key's isolated dataset, so the demo never reads or writes live data. See
+with it run the identical API — the same pipeline (rules, AI deduction, safe fallback), orders,
+tickets, metrics, audit — but every document is scoped to that key's isolated dataset, so the demo
+never reads or writes live data. See
 ["Sandbox keys"](#sandbox-keys-demo-simulation-without-live-data).
 
 ### Switch to live (WhatsApp Cloud API)
@@ -357,7 +358,15 @@ API Setup), `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_APP_S
 The hybrid classifier always runs the rules first; when they are unsure (below
 `RULES_CONFIDENCE_THRESHOLD`) it consults the configured LLM, and degrades safely (rules
 opinion or human hand-off) if the provider fails. With `LLM_PROVIDER=none` (the default)
-it is rules-only and still fully functional. Pick one provider:
+it is rules-only and still fully functional.
+
+The prompt sent to the LLM is rebuilt on every request: it carries one few-shot example per
+intent - a variant sampled randomly from a pool of English and Pidgin phrasings - plus an
+explicit "deduce the intent from the whole question" instruction, so the model reads meaning
+instead of matching keywords (that job belongs to the rules layer). Entity values are only
+ever extracted from the customer message, never copied from the examples.
+
+Pick one provider:
 
 - **Google Gemini** — create a key at [aistudio.google.com](https://aistudio.google.com)
   (*Get API key*). Set `LLM_PROVIDER=gemini`, `LLM_API_KEY=<key>`,

@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { classify } from '../src/services/classifier/index.js';
+import {
+    LLM_INTENTS,
+    buildFewShotExamples,
+    buildSystemPrompt,
+} from '../src/services/classifier/llm.js';
 import { classifyWithRules } from '../src/services/classifier/rules.js';
 
 const execFileAsync = promisify(execFile);
@@ -193,6 +198,10 @@ describe('LLM adapter scenarios (mocked fetch, Ollama Cloud shape)', () => {
         assert.equal(body.messages[0].role, 'system');
         assert.equal(body.messages[1].role, 'user');
         assert.match(body.messages[1].content, /hmm okay then/);
+        // The randomized few-shot prompt rides inside the single system
+        // message, so the untrusted text stays isolated in the user message.
+        assert.match(body.messages[0].content, /Deduce the intent from the meaning/);
+        assert.match(body.messages[0].content, /-> catalog_listing/);
     });
 
     test('a low-confidence LLM answer degrades to unknown (low_confidence)', async () => {
@@ -225,5 +234,32 @@ describe('LLM adapter scenarios (mocked fetch, Ollama Cloud shape)', () => {
         assert.equal(result.intent, 'unknown');
         assert.equal(result.source, 'fallback');
         assert.equal(result.failure, 'ai_unavailable');
+    });
+});
+
+describe('classifier prompt (randomized few-shot)', () => {
+    test('samples one random variant per intent, reshuffled per request', () => {
+        const low = buildFewShotExamples(() => 0);
+        const high = buildFewShotExamples(() => 0.999);
+
+        assert.equal(low.length, LLM_INTENTS.length);
+        assert.deepEqual(
+            [...new Set(low.map((example) => example.intent))].sort(),
+            [...LLM_INTENTS].sort(),
+        );
+        // The RNG drives which variant is sampled, so the two draws differ
+        // while both still cover every intent.
+        assert.notDeepEqual(low, high);
+    });
+
+    test('the system prompt teaches deduction and embeds an example per intent', () => {
+        const prompt = buildSystemPrompt(() => 0);
+
+        assert.match(prompt, /Deduce the intent from the meaning/);
+        assert.match(prompt, /never copy them from the examples/);
+        for (const intent of LLM_INTENTS) {
+            assert.match(prompt, new RegExp(`-> ${intent}\\b`));
+        }
+        assert.match(prompt, /"intent": string/);
     });
 });
