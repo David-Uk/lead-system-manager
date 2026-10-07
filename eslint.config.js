@@ -1,6 +1,6 @@
 export default [
   {
-    ignores: ["node_modules/**", "coverage/**", "logs/**"]
+    ignores: ["node_modules/**", "coverage/**", "logs/**", ".vercel/**", ".vercel-tmp/**"]
   },
   {
     languageOptions: {
@@ -32,7 +32,7 @@ export default [
     }
   },
   {
-    files: ["dashboard/**/*.js"],
+    files: ["dashboard/**/*.js", "home/**/*.js"],
     languageOptions: {
       globals: {
         document: "readonly",

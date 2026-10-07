@@ -1,0 +1,255 @@
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { Router } from 'express';
+import { env } from '../config/env.js';
+
+/**
+ * Home GUI for the index page.
+ *
+ * GET / is content-negotiated: browsers (Accept: text/html) get a small
+ * navigation + simulation page, while API clients, curl and the test suite
+ * (no Accept header) keep receiving the JSON signpost from routes/index.js.
+ *
+ * The page drives the existing /simulate/message and /simulate/keys
+ * endpoints, so it adds no API surface. Its JS/CSS are plain files under
+ * home/ because the app-wide CSP (script-src 'self', no inline scripts)
+ * allows nothing else.
+ */
+
+const require = createRequire(import.meta.url);
+const { version } = require('../../package.json');
+
+const homeDir = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../home',
+);
+const STYLE_FILE = path.join(homeDir, 'style.css');
+const APP_FILE = path.join(homeDir, 'app.js');
+
+const navCards = [
+    {
+        href: '/dashboard/',
+        title: 'Operations dashboard',
+        path: '/dashboard',
+        description: 'Metrics tiles, charts, open tickets and recent audit events - paste the staff key to load data.',
+    },
+    {
+        href: '/docs',
+        title: 'API reference',
+        path: '/docs',
+        description: 'RapiDoc rendering of the OpenAPI document, with try-it-out and auth.',
+    },
+    {
+        href: '/openapi.json',
+        title: 'OpenAPI document',
+        path: '/openapi.json',
+        description: 'The API spec that /docs consumes - feeds API tooling and the drift-guard test.',
+    },
+    {
+        href: '/health',
+        title: 'Health probe',
+        path: '/health',
+        description: '200 ok/degraded, 503 when MongoDB is down; live mongo / llm / notifier states.',
+    },
+    {
+        href: '/api/orders',
+        title: 'Orders API',
+        path: '/api/orders',
+        description: 'Staff order list created by the slot-filling flow (x-api-key).',
+    },
+    {
+        href: '/api/tickets',
+        title: 'Tickets API',
+        path: '/api/tickets',
+        description: 'Escalation queue with SLA and staff-notification flags (x-api-key).',
+    },
+    {
+        href: '/api/metrics',
+        title: 'Metrics API',
+        path: '/api/metrics',
+        description: 'Window figures plus a live backlog snapshot (x-api-key).',
+    },
+    {
+        href: '/api/audit',
+        title: 'Audit trail API',
+        path: '/api/audit',
+        description: 'Every pipeline event, keyset-paginated; filter with ?correlationId=... (x-api-key).',
+    },
+];
+
+const navCardsHtml = navCards
+    .map(
+        (card) => `        <a class="card" href="${card.href}">
+          <strong>${card.title}</strong>
+          <span class="path">${card.path}</span>
+          <p>${card.description}</p>
+        </a>`,
+    )
+    .join('\n');
+
+const webhookCardHtml = `        <div class="card static">
+          <strong>Inbound webhook</strong>
+          <span class="path">GET + POST /webhook</span>
+          <p>Meta-signed customer traffic (handshake + messages). Not browser-driven - use the simulation panel instead.</p>
+        </div>`;
+
+const productionNotice =
+    env.NODE_ENV === 'production'
+        ? `      <div class="notice warn" role="note">
+        <strong>Production deployment.</strong> The live staff key cannot run
+        <code>POST /simulate/message</code> here (404 by design, workplan 8.3). Click
+        <strong>Generate sandbox key</strong> below instead: sandbox keys run the full
+        simulation - the same pipeline, tickets, audit and metrics APIs - against an isolated
+        demo dataset and never read or write live data.
+      </div>
+`
+        : '';
+
+const scenarios = [
+    ['Price check', 'How much is 5kg rice?'],
+    ['Product enquiry', 'Do you have fresh tomatoes?'],
+    ['Order flow - step 1', 'I want to order 2 bags of rice'],
+    ['Order status', 'Where is my order?'],
+    ['Complaint / refund', 'My last order arrived damaged, I want a refund.'],
+];
+
+const scenariosHtml = scenarios
+    .map(
+        ([label, text]) =>
+            `<button type="button" class="scenario" data-text="${text}">${label}</button>`,
+    )
+    .join('\n            ');
+
+const homePage = () => `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lead System Manager - home</title>
+    <link rel="stylesheet" href="/ui/style.css" />
+    <script src="/ui/app.js" defer></script>
+  </head>
+  <body data-env="${env.NODE_ENV}" data-version="${version}">
+    <header class="topbar">
+      <div class="brand">
+        <h1>Lead System Manager</h1>
+        <p class="subtitle">WhatsApp retail automation API - service home</p>
+      </div>
+      <div class="meta">
+        <span class="chip">v${version}</span>
+        <span class="chip ${env.NODE_ENV}">${env.NODE_ENV}</span>
+        <span id="health-chips" class="chips" aria-live="polite">
+          <span class="chip">health: checking...</span>
+        </span>
+      </div>
+    </header>
+
+    <main>
+${productionNotice}      <section class="panel">
+        <h2>Explore the service</h2>
+        <div class="cards">
+${navCardsHtml}
+${webhookCardHtml}
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Simulation <span class="muted">POST /simulate/message</span></h2>
+        <p class="muted">
+          Drives the full pipeline without WhatsApp - dedupe, persistence, classification, replies,
+          order slot filling, tickets and audit. Works with the staff key, or click
+          <strong>Generate sandbox key</strong> to mint a key scoped to isolated demo data: it runs
+          the identical API and never touches live data. Every response carries a correlationId:
+          replay it via GET /api/audit?correlationId=...
+        </p>
+        <form id="sim-form">
+          <div class="row">
+            <label>API key
+              <input id="api-key" type="password" placeholder="staff key or sandbox key" autocomplete="off" />
+            </label>
+            <button
+              id="generate-key"
+              type="button"
+              title="POST /simulate/keys - mints a sandbox key that runs the full API against isolated demo data"
+            >
+              Generate sandbox key
+            </button>
+            <label>From
+              <input id="from" value="+2348012345678" spellcheck="false" />
+            </label>
+            <label>Name
+              <input id="name" placeholder="optional" autocomplete="off" />
+            </label>
+          </div>
+          <label class="block">Message
+            <textarea id="text" rows="3" placeholder="e.g. How much is 5kg rice?"></textarea>
+          </label>
+          <div class="scenarios">
+            <span class="muted">Scenarios:</span>
+            ${scenariosHtml}
+          </div>
+          <div class="row actions">
+            <label class="check">
+              <input id="force-llm-failure" type="checkbox" />
+              forceLlmFailure (demo failure #1: AI outage)
+            </label>
+            <button id="send" type="submit">Send simulated message</button>
+            <button
+              id="resend"
+              type="button"
+              disabled
+              title="Re-sends the last message with the same messageId to exercise the dedupe path"
+            >
+              Resend as duplicate
+            </button>
+          </div>
+        </form>
+        <div id="notice" class="notice hidden" role="alert"></div>
+        <div id="result" class="result hidden">
+          <h3>Response <span class="muted" id="result-status"></span></h3>
+          <div id="result-summary" class="summary"></div>
+          <pre id="result-json"></pre>
+        </div>
+        <div class="scenarios">
+          <span class="muted">Explore API data with this key:</span>
+          <button type="button" class="scenario explore" data-endpoint="/api/orders">Orders</button>
+          <button type="button" class="scenario explore" data-endpoint="/api/tickets">Tickets</button>
+          <button type="button" class="scenario explore" data-endpoint="/api/metrics">Metrics</button>
+          <button type="button" class="scenario explore" data-endpoint="/api/audit">Audit</button>
+        </div>
+        <div id="viewer" class="result hidden">
+          <h3>API viewer <span class="muted" id="viewer-status"></span></h3>
+          <pre id="viewer-json"></pre>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Order flow demo: send the scenario, then answer with a delivery address and <code>YES</code> when the reply asks.</span>
+      <span class="muted">Staff endpoints expect the <code>x-api-key</code> header.</span>
+    </footer>
+  </body>
+</html>
+`;
+
+const router = Router();
+
+// Browsers ask for text/html; everything else falls through to the JSON
+// signpost registered after this router in src/routes/index.js.
+router.get('/', (req, res, next) => {
+    if (!req.headers.accept?.includes('text/html')) {
+        return next();
+    }
+    return res.type('html').send(homePage());
+});
+
+router.get('/ui/style.css', (req, res) => {
+    res.sendFile(STYLE_FILE);
+});
+
+router.get('/ui/app.js', (req, res) => {
+    res.sendFile(APP_FILE);
+});
+
+export default router;

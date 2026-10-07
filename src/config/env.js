@@ -67,6 +67,11 @@ const envSchema = z
 
         // Tickets
         TICKET_SLA_MINUTES: z.coerce.number().int().min(1).default(15),
+
+        // Sandbox simulation (POST /simulate/keys): how long a generated key
+        // stays valid, and the per-IP hourly cap on key creation.
+        SANDBOX_KEY_TTL_HOURS: z.coerce.number().int().min(1).max(720).default(24),
+        SANDBOX_KEY_MAX_PER_HOUR: z.coerce.number().int().min(1).max(1000).default(10),
     })
     .superRefine((value, ctx) => {
         if (value.NODE_ENV === 'production') {

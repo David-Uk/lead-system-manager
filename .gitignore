@@ -3,3 +3,6 @@ node_modules/
 logs
 coverage
 .env
+.vercel
+.vercel-tmp
+.env*

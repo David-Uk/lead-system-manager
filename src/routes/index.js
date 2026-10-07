@@ -9,6 +9,7 @@ import metricsRoutes from './metrics.routes.js';
 import auditRoutes from './audit.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import docsRoutes from './docs.routes.js';
+import homeRoutes from './home.routes.js';
 
 /**
  * Central route table. New route groups are mounted here as tasks land.
@@ -17,6 +18,10 @@ const router = Router();
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json');
+
+// Browser GUI for the index page (Accept: text/html); JSON clients fall
+// through to the signpost below. Also serves the GUI's /ui/* assets.
+router.use(homeRoutes);
 
 /**
  * Root signpost: browsers and probes hitting / get the service name, version

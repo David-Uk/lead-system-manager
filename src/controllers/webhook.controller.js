@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
+import { keepAlive } from '../utils/keepAlive.js';
 import { processInboundMessage } from '../services/pipeline.service.js';
 
 /**
@@ -31,6 +32,9 @@ export function verifyWebhook(req, res) {
  * immediately (Meta retries non-2xx responses, and retries are what the
  * dedupe layer exists for), then process each message asynchronously. A
  * processing crash can therefore never turn into a webhook retry storm.
+ *
+ * Processing is wrapped in keepAlive so serverless deployments (Vercel) do
+ * not freeze the instance in the middle of the pipeline.
  */
 export function receiveWebhook(req, res) {
   const correlationId = req.id;
@@ -45,11 +49,13 @@ export function receiveWebhook(req, res) {
   }
 
   for (const message of messages) {
-    processInboundMessage({ message, correlationId, source: 'webhook' }).catch((err) => {
-      logger.error(
-        { err, correlationId, messageId: message.providerMessageId },
-        'webhook message processing failed',
-      );
-    });
+    keepAlive(
+      processInboundMessage({ message, correlationId, source: 'webhook' }).catch((err) => {
+        logger.error(
+          { err, correlationId, messageId: message.providerMessageId },
+          'webhook message processing failed',
+        );
+      }),
+    );
   }
 }

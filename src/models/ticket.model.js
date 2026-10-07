@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { sandboxScoped } from './plugins/sandboxScope.js';
 
 export const TICKET_REASONS = [
     'complaint',
@@ -34,7 +35,7 @@ export const TICKET_TRANSITIONS = {
  */
 const ticketSchema = new mongoose.Schema(
     {
-        ticketId: { type: String, required: true, unique: true },
+        ticketId: { type: String, required: true },
         conversationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation', default: null },
         customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', default: null },
         reason: { type: String, enum: TICKET_REASONS, required: true },
@@ -54,7 +55,11 @@ const ticketSchema = new mongoose.Schema(
     { timestamps: { createdAt: true, updatedAt: false } },
 );
 
-ticketSchema.index({ status: 1, createdAt: -1 });
+sandboxScoped(ticketSchema);
+
+ticketSchema.index({ sandbox: 1, ticketId: 1 }, { unique: true });
+ticketSchema.index({ sandbox: 1, status: 1, createdAt: -1 });
+ticketSchema.index({ sandboxExpiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Guard against OverwriteModelError when the module is re-imported (tests).
 export const Ticket = mongoose.models.Ticket || mongoose.model('Ticket', ticketSchema);

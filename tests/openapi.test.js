@@ -30,6 +30,7 @@ describe('API documentation (T-016)', () => {
             '/api/tickets',
             '/api/tickets/{ticketId}',
             '/health',
+            '/simulate/keys',
             '/simulate/message',
             '/webhook',
         ]);

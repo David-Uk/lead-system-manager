@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { sandboxScoped } from './plugins/sandboxScope.js';
 
 export const AUDIT_EVENT_TYPES = [
     'MESSAGE_RECEIVED',
@@ -30,7 +31,7 @@ export const AUDIT_ACTORS = ['system', 'customer'];
  */
 const auditEventSchema = new mongoose.Schema(
     {
-        correlationId: { type: String, required: true, index: true },
+        correlationId: { type: String, required: true },
         type: { type: String, enum: AUDIT_EVENT_TYPES, required: true },
         entityType: { type: String, enum: AUDIT_ENTITY_TYPES, default: 'system' },
         entityId: { type: String, default: null },
@@ -40,8 +41,12 @@ const auditEventSchema = new mongoose.Schema(
     { timestamps: { createdAt: true, updatedAt: false } },
 );
 
-auditEventSchema.index({ createdAt: -1 });
-auditEventSchema.index({ type: 1, createdAt: -1 });
+sandboxScoped(auditEventSchema);
+
+auditEventSchema.index({ sandbox: 1, correlationId: 1 });
+auditEventSchema.index({ sandbox: 1, createdAt: -1 });
+auditEventSchema.index({ sandbox: 1, type: 1, createdAt: -1 });
+auditEventSchema.index({ sandboxExpiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Guard against OverwriteModelError when the module is re-imported (tests).
 export const AuditEvent =

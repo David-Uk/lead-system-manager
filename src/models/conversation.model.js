@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { sandboxScoped } from './plugins/sandboxScope.js';
 
 export const CONVERSATION_STATUSES = ['active', 'escalated', 'completed', 'expired'];
 
@@ -26,7 +27,6 @@ const conversationSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Customer',
             required: true,
-            index: true,
         },
         status: { type: String, enum: CONVERSATION_STATUSES, default: 'active' },
         currentIntent: { type: String, default: null },
@@ -44,7 +44,10 @@ const conversationSchema = new mongoose.Schema(
     { timestamps: { createdAt: true, updatedAt: false } },
 );
 
-conversationSchema.index({ customerId: 1, status: 1 });
+sandboxScoped(conversationSchema);
+
+conversationSchema.index({ sandbox: 1, customerId: 1, status: 1 });
+conversationSchema.index({ sandboxExpiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Guard against OverwriteModelError when the module is re-imported (tests).
 export const Conversation =

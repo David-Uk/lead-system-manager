@@ -45,6 +45,7 @@ Sprints 0–3 are implemented (tasks T-001 to T-016):
 - `GET /health` with mongo/llm/notifier checks (503 when Mongo is down)
 - `POST /webhook` with HMAC-SHA256 signature verification, payload validation, instant 200 + async processing, audit events for rejects
 - `POST /simulate/message` (staff API key) to drive the pipeline without Meta, and the WhatsApp adapter (simulated + Cloud API modes)
+- `POST /simulate/keys` mints **sandbox staff keys** for the simulation: a sandbox key authenticates the identical staff API but every read and write is scoped to its own isolated dataset - never live data - and its documents self-delete after the key (plus a day of grace) expires
 - The message pipeline is **live end to end**: it persists the customer + conversation, dedupes repeat deliveries by `providerMessageId` (workplan failure #2), classifies each message (rules first, Ollama Cloud LLM when unsure, safe fallback), answers stock/price/order-status questions and records the full audit trail
 - `place_order` runs a **slot-filling state machine** (item → quantity → address → YES/NO confirm) that creates a real Order (`ORD-20261007-0001`, status `pending_confirmation`) and audits `ORDER_CREATED`; `cancel`/`human` escape mid-flow, invalid answers re-prompt twice then escalate, and conversations idle 30+ minutes expire lazily
 - The staff **orders API** (`/api/orders`, `x-api-key`) lists/filters orders, fetches one by reference and enforces the status transition table with `ORDER_UPDATED` audits
@@ -187,7 +188,9 @@ the transport changes.
 ### Run the simulation (default — nothing external needed)
 
 1. Start the stack: `npm run dev:mongo`, `npm run seed`, `npm start` (see Quick start).
-2. Drive an inbound message:
+2. Drive an inbound message. Easiest: open http://localhost:3000 in a browser — the index
+   page hosts a GUI that links to every service URL and sends simulated messages for you
+   (buttons for common scenarios, staff key, replay an audit trail). Or use curl:
 
    ```bash
    curl -X POST http://localhost:3000/simulate/message \
@@ -205,6 +208,14 @@ The simulation kit also covers the awkward paths:
   401, resend an `--id` for duplicate handling)
 - `"forceLlmFailure": true` in the simulate body — failure #1 (AI outage)
 - `WHATSAPP_FORCE_SEND_FAILURE=true` — failure #4 (staff notification channel down)
+
+On a deployed (production) instance the live staff key intentionally gets a 404 from
+`POST /simulate/message` (workplan 8.3). Self-service **sandbox keys** are the sanctioned way to
+demo there: mint one with `POST /simulate/keys` (public, rate-limited) or the "Generate sandbox
+key" button in the home GUI, then use it as `x-api-key`. Requests with it run the identical API —
+pipeline, orders, tickets, metrics, audit — but every document is scoped to that key's isolated
+dataset, so the demo never reads or writes live data. See
+["Sandbox keys"](#sandbox-keys-demo-simulation-without-live-data).
 
 ### Switch to live (WhatsApp Cloud API)
 
@@ -406,6 +417,28 @@ placeholder. The dashboard asks for the key once per browser tab and keeps it in
 Rotation is one action by design: generate a new value, update `.env` (and the deployed
 environment), restart.
 
+#### Sandbox keys (demo simulation without live data)
+
+`POST /simulate/keys` mints a **sandbox key** — the public, rate-limited entry point to the
+simulation on a deployed instance (`SANDBOX_KEY_MAX_PER_HOUR` per IP per hour):
+
+```bash
+curl -X POST https://your-deployment.example/simulate/keys
+# 201 {"apiKey":"lfm_sim_...","keyPrefix":"lfm_sim_Ab12Cd34","sandboxId":"...","expiresAt":"..."}
+```
+
+Use the `apiKey` as `x-api-key` on any staff endpoint. Behaviour:
+
+- **Same API, isolated data.** The key authenticates `POST /simulate/message` and the full
+  `/api/*` surface; every document the request creates is tagged with the key's `sandboxId`
+  and every read is filtered to it. A sandbox never sees live rows (and vice versa), order and
+  ticket reference sequences restart at `0001` per sandbox, and dedupe is per scope.
+- **Production-safe.** The live staff key still gets 404 from `/simulate/message` in
+  production (workplan 8.3); sandbox keys are the sanctioned way to run the demo there.
+- **Self-cleaning.** Only the SHA-256 hash of the key is stored (the key itself is shown
+  exactly once), the key expires after `SANDBOX_KEY_TTL_HOURS` (default 24) and its documents
+  carry a TTL a day past that — a busy public demo cannot grow the database unbounded.
+
 ### Secrets policy (what the code enforces)
 
 - `.env` is gitignored; only `.env.example` (placeholders) is committed
@@ -567,11 +600,12 @@ grep one id to trace a message end to end.
 
 | Endpoint | Auth | Purpose |
 |---|---|---|
-| `GET /` | none | Service signpost — name, version and links to `/docs`, `/dashboard`, `/health`, `/openapi.json` |
+| `GET /` | none | Service signpost for API clients; browsers (`Accept: text/html`) get the home GUI — endpoint navigation, sandbox-key generation and a simulation panel with an inline API viewer |
 | `GET /health` | none | Liveness/readiness: `ok` / `degraded` (200) or `down` (503) |
 | `GET /webhook` | verify token | Meta handshake, echoes `hub.challenge` |
 | `POST /webhook` | `x-hub-signature-256` | Inbound WhatsApp messages; always 200 fast, processing async |
-| `POST /simulate/message` | `x-api-key` | Drive the pipeline without Meta (disabled in production) |
+| `POST /simulate/keys` | none (rate-limited) | Mint a sandbox key: the full API against an isolated dataset, never live data |
+| `POST /simulate/message` | `x-api-key` | Drive the pipeline without Meta (live key: disabled in production; sandbox keys always allowed) |
 | `GET /api/orders` | `x-api-key` | Staff order list — filters `status`, `phone`, `from`, `to`; paginated (`page`, `limit`) |
 | `GET /api/orders/:orderId` | `x-api-key` | Single order by reference (any case) |
 | `PATCH /api/orders/:orderId` | `x-api-key` | Status transitions only (`confirmed` → `dispatched` → `delivered`; `cancelled` from pending/confirmed), `ORDER_UPDATED` audit |

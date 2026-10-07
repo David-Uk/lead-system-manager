@@ -1,0 +1,18 @@
+# Never upload local secrets or deployment tooling state.
+.env
+.env.*
+.vercel-tmp
+.vercel
+
+# Runtime outputs and caches.
+node_modules
+logs
+coverage
+
+# Not needed at runtime (docs, task files, dev/test tooling, AI wiki).
+.qoder
+tests
+tasks
+docs
+scripts
+test_inputs

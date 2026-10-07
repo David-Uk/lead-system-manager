@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { sandboxScoped } from './plugins/sandboxScope.js';
 
 export const ORDER_STATUSES = [
     'pending_confirmation',
@@ -34,8 +35,8 @@ const orderItemSchema = new mongoose.Schema(
  */
 const orderSchema = new mongoose.Schema(
     {
-        orderId: { type: String, required: true, unique: true },
-        customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
+        orderId: { type: String, required: true },
+        customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
         conversationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation', default: null },
         items: { type: [orderItemSchema], default: [] },
         totalNGN: { type: Number, required: true, min: 0 },
@@ -46,7 +47,14 @@ const orderSchema = new mongoose.Schema(
     { timestamps: true },
 );
 
-orderSchema.index({ status: 1, createdAt: -1 });
+sandboxScoped(orderSchema);
+
+// References stay unique per scope; the count-based sequence in
+// order.service restarts at 0001 inside each sandbox because its
+// countDocuments runs scoped too.
+orderSchema.index({ sandbox: 1, orderId: 1 }, { unique: true });
+orderSchema.index({ sandbox: 1, status: 1, createdAt: -1 });
+orderSchema.index({ sandboxExpiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Guard against OverwriteModelError when the module is re-imported (tests).
 export const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);

@@ -170,14 +170,33 @@ const document = {
                 },
             },
         },
+        '/simulate/keys': {
+            post: {
+                tags: ['Simulation'],
+                summary: 'Generate a sandbox key for the demo',
+                description:
+                    'Public and rate-limited (`SANDBOX_KEY_MAX_PER_HOUR` per IP). Returns a new ' +
+                    'sandbox key exactly once; use it as `x-api-key`. Requests with it run the ' +
+                    'full API against an isolated dataset - live data is never read or written. ' +
+                    'Keys (and their data a day later) expire after `SANDBOX_KEY_TTL_HOURS`.',
+                responses: {
+                    201: {
+                        description: 'The new sandbox key (the plaintext `apiKey` is shown once)',
+                        ...jsonBody({ $ref: '#/components/schemas/SandboxKey' }),
+                    },
+                    429: errorResponse('Too many keys requested (RATE_LIMITED)'),
+                },
+            },
+        },
         '/simulate/message': {
             post: {
                 tags: ['Simulation'],
                 summary: 'Feed a message through the full pipeline',
                 description:
                     'Demo and manual-test entry point: awaits processing and returns the ' +
-                    'outcome (intent, replies, ticket/order ids). Disabled with 404 in ' +
-                    'production (workplan 8.3).',
+                    'outcome (intent, replies, ticket/order ids). In production the live ' +
+                    'staff key gets a 404 (workplan 8.3); generated sandbox keys may always ' +
+                    'run it, scoped to their own data (T-021).',
                 security: [{ ApiKeyAuth: [] }],
                 requestBody: {
                     required: true,
@@ -214,7 +233,7 @@ const document = {
                     },
                     400: errorResponse('Validation error (VALIDATION_ERROR)'),
                     401: errorResponse('Missing or invalid x-api-key (UNAUTHORIZED)'),
-                    404: errorResponse('Not found (simulation is disabled in production)'),
+                    404: errorResponse('Not found (live-key simulation is disabled in production)'),
                     429: errorResponse('Too many requests (RATE_LIMITED)'),
                 },
             },
@@ -466,7 +485,7 @@ const document = {
                 type: 'apiKey',
                 in: 'header',
                 name: 'x-api-key',
-                description: 'Shared staff API key (STAFF_API_KEY)',
+                description: 'Shared staff API key (STAFF_API_KEY) or a generated sandbox key (POST /simulate/keys)',
             },
             WebhookSignature: {
                 type: 'apiKey',
@@ -569,6 +588,29 @@ const document = {
                         description: 'Set when the message completed an order',
                         example: 'ORD-20261007-0001',
                     },
+                },
+            },
+            SandboxKey: {
+                type: 'object',
+                description: 'A generated sandbox key; the same schema is accepted as x-api-key',
+                properties: {
+                    apiKey: {
+                        type: 'string',
+                        description:
+                            'The plaintext key - shown only in this response; only its hash is stored',
+                        example: 'lfm_sim_ExampleKeyMaterial',
+                    },
+                    keyPrefix: {
+                        type: 'string',
+                        description: 'Display-only prefix for logs and support',
+                        example: 'lfm_sim_Example',
+                    },
+                    sandboxId: {
+                        type: 'string',
+                        description: 'Scope stamped on every document the key creates',
+                    },
+                    expiresAt: { type: 'string', format: 'date-time' },
+                    note: { type: 'string' },
                 },
             },
             Order: {
