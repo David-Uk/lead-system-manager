@@ -87,6 +87,7 @@ describe('GET /api/metrics (workplan 8.15, T-015)', () => {
         assert.equal(body.totalMessages, 4);
         assert.equal(body.totalConversations, 2);
         assert.deepEqual(Object.keys(body.intentBreakdown).sort(), [
+            'catalog_listing',
             'complaint_or_refund',
             'order_status',
             'place_order',
@@ -95,6 +96,7 @@ describe('GET /api/metrics (workplan 8.15, T-015)', () => {
             'unknown',
         ]);
         assert.equal(body.intentBreakdown.price_check, 1);
+        assert.equal(body.intentBreakdown.catalog_listing, 0);
         assert.equal(body.intentBreakdown.complaint_or_refund, 1);
         assert.equal(body.intentBreakdown.place_order, 0);
         assert.equal(body.intentBreakdown.product_enquiry, 0);

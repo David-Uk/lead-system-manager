@@ -118,6 +118,7 @@ const productionNotice =
 const scenarios = [
     ['Price check', 'How much is 5kg rice?'],
     ['Product enquiry', 'Do you have fresh tomatoes?'],
+    ['Catalogue listing', 'What are the products available?'],
     ['Order flow - step 1', 'I want to order 2 bags of rice'],
     ['Order status', 'Where is my order?'],
     ['Complaint / refund', 'My last order arrived damaged, I want a refund.'],
@@ -134,6 +135,7 @@ const workbenchScenarios = [
     ['Price check', 'How much is 5kg rice?'],
     ['Milo price (demo product)', 'How much is a tin of Milo?'],
     ['Product enquiry', 'Do you have fresh tomatoes?'],
+    ['Catalogue listing', 'What are the products available?'],
     ['Indomie stock (demo product)', 'Do you sell Indomie?'],
     ['Start an order', 'I want to order 2 crates of eggs'],
     ['Order status', 'Where is my order?'],

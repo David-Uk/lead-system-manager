@@ -165,6 +165,45 @@ export function priceNotFoundReply(query) {
     return `Sorry, I could not find "${query}" in our catalogue, so I do not have a price for it. Could you check the spelling?`;
 }
 
+/**
+ * catalog_listing: "what do you sell?" / "what are the products available?"
+ * - a grouped overview of the active catalogue. Prices only (per-item stock
+ * would make a wall of text); items are capped per category and sorted so
+ * the reply stays scannable as the catalogue grows.
+ */
+export function catalogListingReply(products, { maxPerCategory = 5 } = {}) {
+    const groups = new Map();
+    for (const product of products) {
+        const category = product.category || 'Other';
+        if (!groups.has(category)) groups.set(category, []);
+        groups.get(category).push(product);
+    }
+
+    const lines = [...groups.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([category, items]) => {
+            const sorted = [...items].sort((a, b) =>
+                String(a.name).localeCompare(String(b.name)),
+            );
+            const shown = sorted
+                .slice(0, maxPerCategory)
+                .map((product) => `${product.name} (${formatNGN(product.priceNGN)})`);
+            const hidden = sorted.length - shown.length;
+            return `- ${category}: ${shown.join(', ')}${hidden > 0 ? ` +${hidden} more` : ''}`;
+        });
+
+    return [
+        `Here is what we sell - ${products.length} items across ${groups.size} categories:`,
+        ...lines,
+        'Ask me about any item for its price and stock, or tell me "I want to order ..." to buy.',
+    ].join('\n');
+}
+
+/** catalog_listing when the catalogue is empty (not seeded). */
+export function catalogEmptyReply() {
+    return 'I could not pull up the product list right now - tell me which product you are looking for and I will check for you.';
+}
+
 /** order_status with a found order. */
 export function orderStatusReply(order) {
     const label = STATUS_LABELS[order.status] ?? order.status;

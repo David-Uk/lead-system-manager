@@ -1,5 +1,5 @@
 import * as templates from '../utils/templates.js';
-import { findProductsByQuery } from './product.service.js';
+import { findProductsByQuery, loadActiveProducts } from './product.service.js';
 import { findLatestOrderForPhone, findOrderByOrderId } from './order.service.js';
 import { handlePlaceOrderFlow } from './slotFilling.service.js';
 import { createTicket } from './ticket.service.js';
@@ -46,6 +46,19 @@ async function handlePriceCheck({ text, entities }) {
         return { replies: [templates.priceFoundReply(matches[0])] };
     }
     return { replies: [templates.priceMatchesReply(matches, query)] };
+}
+
+/**
+ * Generic "what do you sell?" questions: answer with a grouped catalogue
+ * overview instead of treating the whole sentence as a product name.
+ */
+async function handleCatalogListing() {
+    const products = await loadActiveProducts();
+
+    if (products.length === 0) {
+        return { replies: [templates.catalogEmptyReply()] };
+    }
+    return { replies: [templates.catalogListingReply(products)] };
 }
 
 async function handleOrderStatus({ entities, customer }) {
@@ -118,6 +131,7 @@ async function handleUnknown({ text, customer, conversation, classificationFailu
 const INTENT_HANDLERS = {
     product_enquiry: handleProductEnquiry,
     price_check: handlePriceCheck,
+    catalog_listing: handleCatalogListing,
     place_order: handlePlaceOrder,
     order_status: handleOrderStatus,
     complaint_or_refund: handleComplaintOrRefund,

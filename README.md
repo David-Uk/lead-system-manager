@@ -2,7 +2,7 @@
 
 Backend for **Lagos Fresh Mart**'s automated WhatsApp customer service. Customers send
 natural-language messages ("Do you have 5kg rice?", "I want to order 2 bags of rice"),
-the API classifies each message into one of five intents, answers price/stock questions
+the API classifies each message into one of six intents, answers price/stock questions
 from a product catalogue, takes orders, tracks complaints as tickets, and keeps an
 append-only audit trail of everything.
 
@@ -47,7 +47,7 @@ Sprints 0–3 are implemented (tasks T-001 to T-016):
 - `POST /simulate/message` (staff API key) to drive the pipeline without Meta, and the WhatsApp adapter (simulated + Cloud API modes)
 - `POST /simulate/keys` mints **sandbox staff keys** for the simulation: a sandbox key authenticates the identical staff API but every read and write is scoped to its own isolated dataset - never live data - and its documents self-delete after the key (plus a day of grace) expires
 - The **simulation workbench** at `/simulate` runs the entire workflow as a simulation: chat as a customer, watch each pipeline stage (received → dedupe → classified → routed → outcome), follow the audit trail automatically and pull tickets/orders/metrics/audit into a data viewer; the scheduled scenarios include demo brands the AI tracks (Milo, Indomie, …)
-- The message pipeline is **live end to end**: it persists the customer + conversation, dedupes repeat deliveries by `providerMessageId` (workplan failure #2), classifies each message (rules first, Ollama Cloud LLM when unsure, safe fallback), answers stock/price/order-status questions and records the full audit trail
+- The message pipeline is **live end to end**: it persists the customer + conversation, dedupes repeat deliveries by `providerMessageId` (workplan failure #2), classifies each message (rules first, Ollama Cloud LLM when unsure, safe fallback), answers stock/price/order-status questions, lists the whole catalogue on request ("what do you sell?"), and records the full audit trail
 - `place_order` runs a **slot-filling state machine** (item → quantity → address → YES/NO confirm) that creates a real Order (`ORD-20261007-0001`, status `pending_confirmation`) and audits `ORDER_CREATED`; `cancel`/`human` escape mid-flow, invalid answers re-prompt twice then escalate, and conversations idle 30+ minutes expire lazily
 - The staff **orders API** (`/api/orders`, `x-api-key`) lists/filters orders, fetches one by reference and enforces the status transition table with `ORDER_UPDATED` audits
 - Every unsafe conversation escalates into a **ticket**: complaints/refunds, unknown-intent second misses, AI outages, repeated invalid data and explicit human requests create `TKT-####` references and the customer reply quotes the reference; staff work the queue through `GET/GET-one/PATCH /api/tickets` with `TICKET_CREATED`/`TICKET_UPDATED` audits and a derived SLA `overdue` flag
@@ -259,7 +259,7 @@ demo: / ▸ /simulate     staff: /api/orders ▸ /api/tickets     ops: /api/metr
 | 0 | Bring the system up | `npm run dev:mongo`, `npm run seed`, `npm start`, then `GET /health` | `GET /health` is also the monitoring probe: 200 `ok`/`degraded`, 503 when Mongo is down |
 | 1 | A message arrives | **live:** `GET /webhook` (handshake, once) and `POST /webhook` · **simulated:** `POST /simulate/message` or `scripts/send-webhook.js` | The POST always answers `200` fast; processing happens asynchronously |
 | 2 | Pipeline runs (automatic) | — (internal) | Dedupe by `providerMessageId`, persist customer/conversation/message, classify (rules → LLM → safe fallback), audit everything — watch it with `GET /api/audit?correlationId=…` |
-| 3a | Question answered | reply goes out via the adapter | `product_enquiry` / `price_check` / `order_status` answered from the catalogue or order data |
+| 3a | Question answered | reply goes out via the adapter | `product_enquiry` / `price_check` / `catalog_listing` / `order_status` answered from the catalogue or order data |
 | 3b | Order taken | completion → Order; staff side: `GET /api/orders`, `GET /api/orders/:orderId`, `PATCH /api/orders/:orderId` | Slot filling item → quantity → address → YES; staff move it `confirmed` → `dispatched` → `delivered` |
 | 3c | Escalation raised | completion → Ticket + WhatsApp staff alert; staff side: `GET /api/tickets`, `GET /api/tickets/:ticketId`, `PATCH /api/tickets/:ticketId` | Complaint / refund / unknown / AI outage → `TKT-####` quoted to the customer; staff assign → in progress → resolve (note required) → close |
 | 4 | Observe and trace | `GET /api/metrics`, `GET /api/audit`, `/dashboard`, `/docs`, `GET /health` | Metrics = window figures + live backlog snapshot; audit = every event, keyset-cursor paginated |

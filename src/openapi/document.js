@@ -770,6 +770,7 @@ const document = {
                             price_check: 18,
                             place_order: 9,
                             order_status: 5,
+                            catalog_listing: 3,
                             complaint_or_refund: 2,
                             unknown: 0,
                         },

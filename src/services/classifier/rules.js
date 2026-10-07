@@ -11,7 +11,8 @@ import { rankProducts } from '../product.service.js';
  * Scoring: each strong pattern (weight 2) or weak pattern (weight 1) that
  * matches adds points; a catalogue match confirms catalogue/purchase
  * intents (+1). On ties, the RULE_SET order below decides (complaints beat
- * logistics, logistics beat purchase intent, purchase beats catalogue).
+ * logistics, logistics beat purchase intent, purchase beats price, and a
+ * generic catalogue-listing phrase beats a single-product enquiry).
  */
 
 const CONFIDENCE_BASE = 0.5;
@@ -66,6 +67,24 @@ const RULE_SET = [
             /\brate\b/i,
         ],
         weak: [/\bcharge\b/i],
+    },
+    {
+        intent: 'catalog_listing',
+        strong: [
+            /\bwhat (are|r) the (products?|items?|goods|things)\b/i,
+            /\bwhat (products?|items?|goods|things)\b.{0,25}\b(do you|does|are|available|sell|have)\b/i,
+            /\bwhat (kind|type|sort)s? of (products?|items?|goods|things)\b/i,
+            /\bwhat (do|does) (you|una|u) (sell|have|stock|get|dey)\b/i,
+            /\bwhich (products?|items?|goods)\b/i,
+            /\bdo you (have|sell|stock) (any )?(products?|items?|goods)\b/i,
+            /\bdo (you|una) sell\b/i,
+            /\b(list|menu|catalogue|catalog)\b/i,
+            /\bshow me\b.{0,25}\b(products?|items?|goods|catalogue|catalog|menu)\b/i,
+            /\bshow me what (you|una)\b/i,
+            /\bwhat('s| is) available\b/i,
+            /\bwetin (una|you|u)\b.{0,25}\b(sell|get|have|stock)\b/i,
+        ],
+        weak: [],
     },
     {
         intent: 'product_enquiry',
@@ -131,6 +150,22 @@ export function classifyWithRules(text, products = []) {
 
     if (!bestIntent) {
         return { intent: null, confidence: 0, entities };
+    }
+
+    // Resolve the catalog_listing / product_enquiry overlap in both
+    // directions. A named product defuses a listing phrase: "what products
+    // do you have in rice?" is a rice question, not a catalogue dump. With
+    // no named product, listing vocabulary outranks product_enquiry's
+    // generic "available" / "do you sell" phrasings, which stack to 3
+    // points: "what are the products available?" asks for the overview.
+    if (bestProduct && !ambiguous && bestIntent === 'catalog_listing') {
+        bestIntent = 'product_enquiry';
+    } else if (
+        bestIntent === 'product_enquiry' &&
+        !bestProduct &&
+        (scores.get('catalog_listing') ?? 0) >= 2
+    ) {
+        bestIntent = 'catalog_listing';
     }
 
     // A catalogue match confirms catalogue questions and purchase intent.

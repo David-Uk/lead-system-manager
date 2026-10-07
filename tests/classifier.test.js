@@ -129,6 +129,27 @@ describe('rules classifier (workplan 4, step 1)', () => {
         assert.equal(result.intent, 'product_enquiry');
         assert.equal(result.entities.productQuery, null);
     });
+
+    test('"What are the products available?" -> catalog_listing, not a product guess', async () => {
+        const result = await classify('What are the products available?', { products: CATALOGUE });
+
+        assert.equal(result.intent, 'catalog_listing');
+        assert.equal(result.source, 'rules');
+        assert.ok(result.confidence >= 0.7);
+        assert.equal(result.entities.productQuery, null);
+    });
+
+    test('"What do you sell?" and its pidgin form both list the catalogue', () => {
+        assert.equal(classifyWithRules('What do you sell?', CATALOGUE).intent, 'catalog_listing');
+        assert.equal(classifyWithRules('wetin una dey sell?', CATALOGUE).intent, 'catalog_listing');
+    });
+
+    test('a named product demotes a listing phrase back to product_enquiry', () => {
+        const result = classifyWithRules('what products do you have in rice?', CATALOGUE);
+
+        assert.equal(result.intent, 'product_enquiry');
+        assert.equal(result.entities.productQuery, 'Rice 5kg');
+    });
 });
 
 describe('LLM adapter scenarios (mocked fetch, Ollama Cloud shape)', () => {

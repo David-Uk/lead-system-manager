@@ -127,6 +127,35 @@ describe('product_enquiry and price_check handlers (T-010, T1/T2)', () => {
     });
 });
 
+describe('catalog_listing handler (catalogue overview)', () => {
+    test('"What are the products available?" lists the catalogue instead of a not-found', async () => {
+        const res = await postMessage({ text: 'What are the products available?' });
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body.intent, 'catalog_listing');
+        assert.equal(res.body.classifierSource, 'rules');
+        assert.equal(res.body.replies.length, 1);
+        assert.match(res.body.replies[0], /Here is what we sell - 3 items across 2 categories:/);
+        assert.match(res.body.replies[0], /- Cooking: Palm Oil 1L \(/);
+        assert.match(res.body.replies[0], /- Grains: Beans 1kg \(.*\), Rice 5kg \(/);
+        assert.doesNotMatch(res.body.replies[0], /could not find/);
+    });
+
+    test('"What do you sell?" answers with the same grouped overview', async () => {
+        const res = await postMessage({ text: 'What do you sell?' });
+
+        assert.equal(res.body.intent, 'catalog_listing');
+        assert.match(res.body.replies[0], /Here is what we sell - 3 items across 2 categories:/);
+    });
+
+    test('a named product keeps the specific answer (demote regression)', async () => {
+        const res = await postMessage({ text: 'What products do you have in rice?' });
+
+        assert.equal(res.body.intent, 'product_enquiry');
+        assert.match(res.body.replies[0], /Yes, we have Rice 5kg/);
+    });
+});
+
 describe('order_status handler (T-010, T4)', () => {
     test('an order reference is looked up and answered with its status', async () => {
         await seedOrder();
