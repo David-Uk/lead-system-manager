@@ -12,6 +12,10 @@
  *      response (received, dedupe, classification, routing, outcome),
  *      auto-loads the audit trail for the response correlationId, and can
  *      pull tickets/orders/metrics/audit into the data viewer.
+ *   3. Team queue - lists this key's escalation tickets and runs the whole
+ *      back-office loop: assign a ticket to a team member (the first
+ *      assignment sets firstResponseAt), start progress, resolve with a
+ *      note, close - the same PATCH /api/tickets/:ticketId staff API.
  *
  * Same conventions as the home GUI (home/app.js): server-rendered page,
  * textContent only (API data is never injected as HTML), and the API key
@@ -336,6 +340,187 @@
     }
   }
 
+  /* ---------- team queue (ticket tasks) ---------- */
+
+  const TICKET_STATUS_KINDS = {
+    open: 'warn',
+    assigned: 'info',
+    in_progress: 'info',
+    resolved: 'ok',
+    closed: 'neutral',
+  };
+
+  async function loadQueue() {
+    const apiKey = $('api-key').value.trim();
+    if (!apiKey) {
+      showNotice('Enter or generate an API key first - staff endpoints expect x-api-key.');
+      return;
+    }
+
+    const queue = $('team-queue');
+    $('queue-status').textContent = '- loading...';
+
+    try {
+      const res = await fetch('/api/tickets?limit=20', { headers: { 'x-api-key': apiKey } });
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        $('queue-status').textContent = `- HTTP ${res.status}`;
+        queue.replaceChildren(note('Ticket queue unavailable for this key/dataset.'));
+        if (res.status === 401) {
+          showNotice(
+            'The key was rejected (401). Generate a sandbox key above or check the staff key.',
+            'danger',
+          );
+        }
+        return;
+      }
+
+      const tickets = body.data ?? [];
+      $('queue-status').textContent = `- ${body.total ?? 0} ticket${body.total === 1 ? '' : 's'}`;
+      queue.replaceChildren(
+        ...(tickets.length > 0
+          ? tickets.map((ticket) => ticketRow(ticket))
+          : [
+              note(
+                'No tickets yet - escalate something (Complaint / refund, or forceLlmFailure), then reload.',
+              ),
+            ]),
+      );
+    } catch (err) {
+      $('queue-status').textContent = '- failed';
+      queue.replaceChildren(note(`Queue request failed: ${err.message}`));
+    }
+  }
+
+  async function patchTicket(ticketId, payload, doneLabel) {
+    const apiKey = $('api-key').value.trim();
+    if (!apiKey) {
+      showNotice('Enter or generate an API key first - staff endpoints expect x-api-key.');
+      return;
+    }
+    clearNotice();
+
+    try {
+      const res = await fetch(`/api/tickets/${encodeURIComponent(ticketId)}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json', 'x-api-key': apiKey },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const details = (body?.error?.details ?? [])
+          .map((detail) => `${detail.path}: ${detail.message}`)
+          .join('; ');
+        showNotice(
+          `${body?.error?.message ?? `HTTP ${res.status}`}${details ? ` - ${details}` : ''}`,
+          'danger',
+        );
+        return;
+      }
+
+      showNotice(
+        `${doneLabel} - ${body.ticketId} is now ${body.status}` +
+          `${body.assignee ? ` with assignee ${body.assignee}` : ''}.`,
+        'ok',
+      );
+      $('viewer-status').textContent = `- PATCH ticket ${body.ticketId} (HTTP ${res.status})`;
+      $('viewer-json').textContent = JSON.stringify(body, null, 2);
+      await loadQueue();
+    } catch (err) {
+      showNotice(`Ticket update failed: ${err.message}`, 'danger');
+    }
+  }
+
+  function ticketRow(ticket) {
+    const row = document.createElement('div');
+    row.className = 'task';
+
+    const head = document.createElement('div');
+    head.className = 'task-head';
+    const ref = document.createElement('strong');
+    ref.textContent = ticket.ticketId;
+    head.append(ref);
+    head.append(chip(ticket.status, TICKET_STATUS_KINDS[ticket.status] ?? 'neutral'));
+    head.append(chip(ticket.priority, ticket.priority === 'high' ? 'danger' : 'neutral'));
+    head.append(chip(ticket.reason, 'neutral'));
+    head.append(
+      chip(`assignee: ${ticket.assignee ?? 'unassigned'}`, ticket.assignee ? 'ok' : 'neutral'),
+    );
+    if (ticket.overdue) head.append(chip('overdue', 'danger'));
+    row.append(head);
+    row.append(note(ticket.summary ?? '', ''));
+
+    const actions = document.createElement('div');
+    actions.className = 'task-actions';
+    const add = (label, handler) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        try {
+          await handler();
+        } finally {
+          button.disabled = false;
+        }
+      });
+      actions.append(button);
+    };
+
+    const isOpen = ticket.status === 'open';
+    if (isOpen || ticket.status === 'assigned' || ticket.status === 'in_progress') {
+      add(isOpen ? 'Assign' : 'Reassign', () => {
+        const assignee = $('assignee').value.trim();
+        if (!assignee) {
+          showNotice('Type or pick a team member first (the Team member field above).');
+          return undefined;
+        }
+        // open -> assigned is a legal transition; on later states only the
+        // assignee changes (in_progress -> assigned is not in the table).
+        return patchTicket(
+          ticket.ticketId,
+          isOpen ? { status: 'assigned', assignee } : { assignee },
+          `Assigned ${ticket.ticketId} to ${assignee}`,
+        );
+      });
+    }
+    if (ticket.status === 'assigned') {
+      add('Start', () =>
+        patchTicket(ticket.ticketId, { status: 'in_progress' }, `Started ${ticket.ticketId}`),
+      );
+    }
+    if (ticket.status === 'assigned' || ticket.status === 'in_progress') {
+      add('Resolve', () => {
+        const resolutionNote = $('resolution-note').value.trim();
+        if (!resolutionNote) {
+          showNotice('Add a resolution note first - the API requires one when resolving.');
+          return undefined;
+        }
+        return patchTicket(
+          ticket.ticketId,
+          { status: 'resolved', resolutionNote },
+          `Resolved ${ticket.ticketId}`,
+        );
+      });
+    }
+    if (ticket.status !== 'closed') {
+      add('Close', () =>
+        patchTicket(ticket.ticketId, { status: 'closed' }, `Closed ${ticket.ticketId}`),
+      );
+    }
+    add('View', () =>
+      loadIntoViewer(
+        `/api/tickets/${encodeURIComponent(ticket.ticketId)}`,
+        `ticket ${ticket.ticketId}`,
+      ),
+    );
+
+    row.append(actions);
+    return row;
+  }
+
   /* ---------- sandbox keys ---------- */
 
   async function generateKey() {
@@ -474,6 +659,13 @@
       renderPipeline(body);
       renderSummary(body, res.status);
       if (body.correlationId) await loadAudit(body.correlationId);
+      if (body.ticketId) {
+        showNotice(
+          `Ticket ${body.ticketId} is in the team queue below - assign it to a team member.`,
+          'warn',
+        );
+        await loadQueue();
+      }
     } catch (err) {
       showNotice(`Request failed: ${err.message}`, 'danger');
     } finally {
@@ -496,6 +688,7 @@
     $('resend').addEventListener('click', () => sendMessage({ reuseLast: true }));
     $('generate-key').addEventListener('click', generateKey);
     $('new-customer').addEventListener('click', newCustomer);
+    $('load-queue').addEventListener('click', loadQueue);
 
     for (const button of document.querySelectorAll('.scenario:not(.explore)')) {
       button.addEventListener('click', () => {

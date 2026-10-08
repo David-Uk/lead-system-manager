@@ -14,9 +14,10 @@ import { env } from '../config/env.js';
  * chat the pipeline, watch each stage, explore the data it creates.
  *
  * Both pages drive the existing /simulate/message and /simulate/keys
- * endpoints, so they add no API surface. Their JS/CSS are plain files under
- * home/ because the app-wide CSP (script-src 'self', no inline scripts)
- * allows nothing else.
+ * endpoints, plus the staff APIs they explore (orders, tickets, metrics,
+ * audit - the team queue also PATCHes tickets for assignment), so they add
+ * no API surface. Their JS/CSS are plain files under home/ because the
+ * app-wide CSP (script-src 'self', no inline scripts) allows nothing else.
  */
 
 const require = createRequire(import.meta.url);
@@ -153,6 +154,16 @@ const workbenchScenariosHtml = workbenchScenarios
             `<button type="button" class="scenario" data-text="${text}">${label}</button>`,
     )
     .join('\n            ');
+
+/**
+ * Demo roster for the ticket team queue. The datalist only suggests names -
+ * the API accepts any assignee string, so custom names work too.
+ */
+const TEAM_MEMBERS = ['Amaka', 'Chinedu', 'Ngozi', 'Tunde'];
+
+const teamRosterHtml = TEAM_MEMBERS.map((name) => `<option value="${name}"></option>`).join(
+    '\n          ',
+);
 
 const homePage = () => `<!doctype html>
 <html lang="en">
@@ -368,6 +379,34 @@ ${productionNotice}      <section class="panel">
           <button type="button" class="scenario explore" data-endpoint="/api/tickets">Tickets</button>
           <button type="button" class="scenario explore" data-endpoint="/api/metrics">Metrics</button>
           <button type="button" class="scenario explore" data-endpoint="/api/audit">Audit</button>
+        </div>
+      </section>
+
+      <section class="panel wide">
+        <h2>3. Team queue <span class="muted" id="queue-status">-</span></h2>
+        <p class="muted">
+          Escalations land here as tasks. Pick a team member - the datalist offers a demo roster,
+          but any name works - then assign the ticket and move it along
+          assigned → in progress → resolved → closed: the exact transition table of the staff API
+          (<code>PATCH /api/tickets/:ticketId</code>). Keep a sandbox key in the field above to
+          leave live data untouched.
+        </p>
+        <div class="row">
+          <label>Team member
+            <input id="assignee" list="team-roster" placeholder="e.g. Amaka" autocomplete="off" />
+          </label>
+          <label>Resolution note
+            <input id="resolution-note" placeholder="required when resolving" autocomplete="off" />
+          </label>
+          <button id="load-queue" type="button" title="GET /api/tickets for this key's dataset">
+            Load tickets
+          </button>
+        </div>
+        <datalist id="team-roster">
+          ${teamRosterHtml}
+        </datalist>
+        <div id="team-queue" class="queue">
+          <p class="muted">Load the queue to assign this key's tickets and progress them. A new escalation loads it automatically.</p>
         </div>
       </section>
     </main>

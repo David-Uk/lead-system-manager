@@ -106,6 +106,18 @@ code {
   color: var(--red);
 }
 
+.chip.warn {
+  background: var(--amber-soft);
+  border-color: #f0d9a8;
+  color: var(--amber);
+}
+
+.chip.info {
+  background: var(--blue-soft);
+  border-color: #c3d7ee;
+  color: var(--blue);
+}
+
 /* ---------- layout ---------- */
 
 main {
@@ -592,6 +604,76 @@ main.workbench {
 
 #viewer-json {
   max-height: 300px;
+}
+
+/* ---------- team queue (ticket tasks) ---------- */
+
+.workbench .panel.wide {
+  grid-column: 1 / -1;
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--amber);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: var(--bg);
+}
+
+.task-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.task-head strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+.queue > p,
+.task > p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.task-actions button {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.task-actions button:hover:not(:disabled) {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+#load-queue {
+  background: var(--blue-soft);
+  border-color: #c3d7ee;
+  color: var(--blue);
+}
+
+#load-queue:hover:not(:disabled) {
+  border-color: var(--blue);
 }
 
 footer.wide {

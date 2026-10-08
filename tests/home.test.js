@@ -59,6 +59,13 @@ describe('simulation workbench (GET /simulate)', () => {
         assert.match(res.text, /data-env="test"/);
         assert.match(res.text, /Is there anything for breakfast\?/);
         assert.match(res.text, /Abeg I need something to cook jollof/);
+        assert.match(res.text, /3. Team queue/);
+        assert.match(res.text, /id="team-queue"/);
+        assert.match(res.text, /id="assignee"/);
+        assert.match(res.text, /id="resolution-note"/);
+        assert.match(res.text, /id="load-queue"/);
+        assert.match(res.text, /id="team-roster"/);
+        assert.match(res.text, /<option value="Amaka"><\/option>/);
     });
 
     test('falls through to 404 for non-HTML clients (the API surface is POST-only)', async () => {
